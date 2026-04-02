@@ -1,0 +1,26 @@
+{
+  "title": "Martin Chvila",
+  "description": "Founder, Software Engineer & AI Integrator",
+  "intro": "I'm a <founder>founder</founder>, <engineer>software engineer</engineer>, and <ai>AI integrator & evangelist</ai>. I build products, write code, and help companies harness the power of artificial intelligence to transform their workflows and unlock new possibilities.",
+  "sections": {
+    "founder": {
+      "title": "Founder",
+      "text": "I build products and businesses from the ground up. From initial concept to market, I bring ideas to life through technology, design, and relentless execution. I believe in building things that matter and shipping fast."
+    },
+    "engineer": {
+      "title": "Software Engineer",
+      "text": "I've been writing software professionally for over a decade. Full-stack, pragmatic, and product-minded. I care about code that works, systems that scale, and developer experience that doesn't get in the way."
+    },
+    "ai": {
+      "title": "AI Integrator & Evangelist",
+      "text": "I help companies integrate AI into their products and workflows. Not hype, but real, practical applications that deliver results. From LLMs to computer vision, I bridge the gap between what AI can do and what businesses need."
+    },
+    "contact": {
+      "title": "Get in Touch",
+      "text": "The best way to reach me is by email or on social media."
+    }
+  },
+  "language": "EN",
+  "switchTo": "CS",
+  "switchLabel": "Cestina"
+}

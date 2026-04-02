@@ -1,0 +1,26 @@
+{
+  "title": "Martin Chvila",
+  "description": "Zakladatel, softwarovy inzenyr a AI integrator",
+  "intro": "Jsem <founder>zakladatel</founder>, <engineer>softwarovy inzenyr</engineer> a <ai>AI integrator & evangelista</ai>. Vytvarim produkty, pisu kod a pomahani firmam vyuzit silu umele inteligence k transformaci jejich pracovnich postupu a objevovani novych moznosti.",
+  "sections": {
+    "founder": {
+      "title": "Zakladatel",
+      "text": "Buduju produkty a firmy od zakladu. Od prvotniho napadu az po uvedeni na trh privadim myslenky k zivotu pomoci technologii, designu a neustaleho snazeni. Verim v budovani veci, na kterych zalezi, a v rychle dodavani."
+    },
+    "engineer": {
+      "title": "Softwarovy inzenyr",
+      "text": "Software pisu profesionalne pres deset let. Full-stack, pragmaticky a produktove orientovany. Zalezi mi na kodu, ktery funguje, systemech, ktere skaluji, a na vyvojarskem prostredi, ktere nestoji v ceste."
+    },
+    "ai": {
+      "title": "AI integrator & evangelista",
+      "text": "Pomahani firmam integrovat AI do jejich produktu a pracovnich postupu. Zadny hype, ale realne, prakticke aplikace, ktere prinaseji vysledky. Od LLM po pocitacove videni prekonavam propast mezi tim, co AI dokaze, a tim, co firmy potrebuji."
+    },
+    "contact": {
+      "title": "Kontakt",
+      "text": "Nejlepsi zpusob, jak me kontaktovat, je e-mailem nebo na socialnich sitich."
+    }
+  },
+  "language": "CS",
+  "switchTo": "EN",
+  "switchLabel": "English"
+}
