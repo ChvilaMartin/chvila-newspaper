@@ -25,7 +25,7 @@ export default async function ArticlePage({
   const article = getArticleBySlug(slug)
   if (!article) notFound()
 
-  const paragraphs = article.paragraphs[lang] ?? article.paragraphs['en']
+  const blocks = article.blocks[lang] ?? article.blocks['en']
 
   return (
     <ViewTransition default="none" enter="page-enter" exit="page-exit">
@@ -39,7 +39,7 @@ export default async function ArticlePage({
             <p className="article-subtitle">{article.subtitle[lang]}</p>
           </header>
 
-          <ArticleView paragraphs={paragraphs} />
+          <ArticleView blocks={blocks} />
         </div>
       </div>
     </ViewTransition>

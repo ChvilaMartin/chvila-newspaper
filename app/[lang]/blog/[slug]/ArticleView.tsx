@@ -8,6 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
+import type { Block } from '../articles'
 import {
   ArticleColumns,
   type ArticleColumnsHandle,
@@ -52,7 +53,7 @@ function ArrowRightIcon() {
 }
 
 interface Props {
-  paragraphs: string[]
+  blocks: Block[]
 }
 
 const STORAGE_KEY = 'article-view-mode'
@@ -96,7 +97,8 @@ function getAvailableViewportHeight(element: HTMLElement | null) {
   )
 }
 
-export function ArticleView({ paragraphs }: Props) {
+export function ArticleView({ blocks }: Props) {
+  const firstTextIndex = blocks.findIndex((b) => b.type === 'text')
   const columnsRef = useRef<ArticleColumnsHandle | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const [preferredMode, setPreferredMode] = useState<'columns' | 'standard'>(getStoredMode)
@@ -200,16 +202,30 @@ export function ArticleView({ paragraphs }: Props) {
       <div ref={contentRef}>
         {mode === 'standard' ? (
           <div className="article-standard">
-            {paragraphs.map((p, i) => (
-              <p key={i} className={i === 0 ? 'drop-cap' : undefined}>
-                {p}
-              </p>
-            ))}
+            {blocks.map((block, i) => {
+              if (block.type === 'text') {
+                return (
+                  <p key={i} className={i === firstTextIndex ? 'drop-cap' : undefined}>
+                    {block.text}
+                  </p>
+                )
+              }
+              return (
+                <figure key={i} className="article-figure article-figure--standard">
+                  <img
+                    src={block.src}
+                    alt={block.alt}
+                    width={block.width}
+                    height={block.height}
+                  />
+                </figure>
+              )
+            })}
           </div>
         ) : (
           <ArticleColumns
             ref={columnsRef}
-            paragraphs={paragraphs}
+            blocks={blocks}
             viewportHeight={columnViewportHeight!}
             onNavigationStateChange={({ canGoLeft, canGoRight }) => {
               setCanGoLeft(canGoLeft)
