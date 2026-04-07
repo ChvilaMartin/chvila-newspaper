@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
+import { ViewTransition } from 'react'
 import { hasLocale } from '../../dictionaries'
 import { articles, getArticleBySlug } from '../articles'
 import { ArticleView } from './ArticleView'
+import { SiteNavigation } from '../../components/SiteNavigation'
 
 export async function generateStaticParams() {
   const params: { lang: string; slug: string }[] = []
@@ -27,18 +28,20 @@ export default async function ArticlePage({
   const paragraphs = article.paragraphs[lang] ?? article.paragraphs['en']
 
   return (
-    <div className="article-page">
-      <nav className="article-nav">
-        <Link href={`/${lang}/blog`}>&larr; Blog</Link>
-      </nav>
+    <ViewTransition default="none" enter="page-enter" exit="page-exit">
+      <div>
+        <SiteNavigation lang={lang} placement="top" />
 
-      <header className="article-header">
-        <time dateTime={article.date}>{article.date}</time>
-        <h1>{article.title[lang]}</h1>
-        <p className="article-subtitle">{article.subtitle[lang]}</p>
-      </header>
+        <div className="article-page article-page--top-nav">
+          <header className="article-header">
+            <time dateTime={article.date}>{article.date}</time>
+            <h1>{article.title[lang]}</h1>
+            <p className="article-subtitle">{article.subtitle[lang]}</p>
+          </header>
 
-      <ArticleView paragraphs={paragraphs} />
-    </div>
+          <ArticleView paragraphs={paragraphs} />
+        </div>
+      </div>
+    </ViewTransition>
   )
 }
