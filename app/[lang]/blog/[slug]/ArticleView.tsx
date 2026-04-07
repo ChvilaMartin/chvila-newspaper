@@ -1,6 +1,13 @@
 'use client'
 
-import { useState, useSyncExternalStore } from 'react'
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import { ArticleColumns } from './ArticleColumns'
 
 // Column icon (3 vertical bars)
@@ -31,6 +38,8 @@ interface Props {
 
 const STORAGE_KEY = 'article-view-mode'
 const MOBILE_MEDIA_QUERY = '(max-width: 639px)'
+const COLUMN_VIEWPORT_BOTTOM_GUTTER = 8
+const MIN_COLUMN_VIEWPORT_HEIGHT = 320
 
 function getStoredMode(): 'columns' | 'standard' {
   if (typeof window === 'undefined') return 'columns'
@@ -58,10 +67,64 @@ function getIsSmallScreen() {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
+function getAvailableViewportHeight(element: HTMLElement | null) {
+  if (typeof window === 'undefined' || !element) return null
+
+  const { top } = element.getBoundingClientRect()
+  return Math.max(
+    0,
+    Math.floor(window.innerHeight - top - COLUMN_VIEWPORT_BOTTOM_GUTTER),
+  )
+}
+
 export function ArticleView({ paragraphs }: Props) {
+  const contentRef = useRef<HTMLDivElement | null>(null)
   const [preferredMode, setPreferredMode] = useState<'columns' | 'standard'>(getStoredMode)
+  const [columnViewportHeight, setColumnViewportHeight] = useState<number | null>(null)
   const isSmallScreen = useSyncExternalStore(subscribeToSmallScreen, getIsSmallScreen, () => false)
-  const mode = isSmallScreen ? 'standard' : preferredMode
+  const updateColumnViewportHeight = useEffectEvent(() => {
+    setColumnViewportHeight(getAvailableViewportHeight(contentRef.current))
+  })
+
+  useLayoutEffect(() => {
+    updateColumnViewportHeight()
+  }, [isSmallScreen])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    updateColumnViewportHeight()
+
+    const handleResize = () => {
+      updateColumnViewportHeight()
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', handleResize)
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateColumnViewportHeight()
+    })
+
+    if (contentRef.current) observer.observe(contentRef.current)
+    if (contentRef.current?.parentElement) observer.observe(contentRef.current.parentElement)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      observer.disconnect()
+    }
+  }, [])
+
+  const isHeightConstrained =
+    columnViewportHeight !== null &&
+    columnViewportHeight < MIN_COLUMN_VIEWPORT_HEIGHT
+  const mode =
+    isSmallScreen || isHeightConstrained || columnViewportHeight === null
+      ? 'standard'
+      : preferredMode
 
   function toggleMode() {
     const next = preferredMode === 'columns' ? 'standard' : 'columns'
@@ -71,7 +134,7 @@ export function ArticleView({ paragraphs }: Props) {
 
   return (
     <>
-      {!isSmallScreen ? (
+      {!isSmallScreen && !isHeightConstrained && columnViewportHeight !== null ? (
         <div className="view-toggle">
           <button
             onClick={toggleMode}
@@ -86,17 +149,22 @@ export function ArticleView({ paragraphs }: Props) {
 
       <hr className="article-rule" />
 
-      {mode === 'standard' ? (
-        <div className="article-standard">
-          {paragraphs.map((p, i) => (
-            <p key={i} className={i === 0 ? 'drop-cap' : undefined}>
-              {p}
-            </p>
-          ))}
-        </div>
-      ) : (
-        <ArticleColumns paragraphs={paragraphs} />
-      )}
+      <div ref={contentRef}>
+        {mode === 'standard' ? (
+          <div className="article-standard">
+            {paragraphs.map((p, i) => (
+              <p key={i} className={i === 0 ? 'drop-cap' : undefined}>
+                {p}
+              </p>
+            ))}
+          </div>
+        ) : (
+          <ArticleColumns
+            paragraphs={paragraphs}
+            viewportHeight={columnViewportHeight!}
+          />
+        )}
+      </div>
     </>
   )
 }

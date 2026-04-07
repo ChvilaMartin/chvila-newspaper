@@ -207,6 +207,10 @@ section {
   outline: none;
 }
 
+.site-nav-link.is-locale {
+  margin-left: 4px;
+}
+
 /* Blog list */
 
 .back-link {
@@ -318,13 +322,16 @@ section {
 
 /* Newspaper columns — flex layout with scroll-snap */
 
+.article-columns-shell {
+  position: relative;
+}
+
 .article-scroll {
   overflow-x: auto;
   overflow-y: hidden;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
-  height: calc(100dvh - 260px);
-  padding-bottom: 2rem;
+  scrollbar-width: none;
 }
 
 .article-columns {
@@ -338,11 +345,21 @@ section {
   scroll-snap-align: start;
   overflow: hidden;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .article-column-ruled {
-  border-left: 1px solid var(--rule);
-  padding-left: 2rem;
+  position: relative;
+}
+
+.article-column-ruled::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1rem;
+  width: 1px;
+  background: var(--rule);
 }
 
 .article-column p {
@@ -365,6 +382,47 @@ section {
   padding-top: 4px;
   font-weight: normal;
   color: var(--header-link);
+}
+
+.article-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.article-scroll-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.article-scroll-arrow {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--surface-large-border);
+  border-radius: 999px;
+  background: rgba(255, 251, 247, 0.9);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s,
+    opacity 0.15s;
+}
+
+.article-scroll-arrow:hover:not(:disabled),
+.article-scroll-arrow:active:not(:disabled) {
+  color: var(--link);
+  border-color: rgba(225, 71, 117, 0.24);
+  background: #f1ebea;
+}
+
+.article-scroll-arrow:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 /* View toggle */
@@ -514,6 +572,10 @@ section {
   .site-nav-indicator {
     display: none;
   }
+
+  .site-nav-link.is-locale {
+    margin-left: 0;
+  }
 }
 
 /* Standard (scroll) view */
@@ -562,10 +624,6 @@ section {
   .article-page {
     max-width: 100%;
     padding: 20px 1.25rem 0;
-  }
-
-  .article-scroll {
-    height: calc(100dvh - 280px);
   }
 
   .article-header h1 {

@@ -14,7 +14,7 @@ import {
 import type { Locale } from '../dictionaries'
 
 type Placement = 'home' | 'top'
-type NavKey = 'home' | 'about' | 'blog' | 'uses' | 'contact'
+type NavKey = 'home' | 'about' | 'blog' | 'uses' | 'contact' | 'locale'
 
 interface Props {
   lang: Locale
@@ -54,6 +54,11 @@ function getIsMobileNavigation() {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
+function getLocaleHref(pathname: string | null, lang: Locale, targetLang: Locale) {
+  if (!pathname) return `/${targetLang}`
+  return pathname.replace(new RegExp(`^/${lang}(?=/|$)`), `/${targetLang}`)
+}
+
 export function SiteNavigation({ lang, placement }: Props) {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement | null>(null)
@@ -73,6 +78,8 @@ export function SiteNavigation({ lang, placement }: Props) {
 
   const activeKey: NavKey = pathname?.includes('/blog') ? 'blog' : 'home'
   const indicatorKey = hoveredKey ?? activeKey
+  const targetLang: Locale = lang === 'en' ? 'cs' : 'en'
+  const localeHref = getLocaleHref(pathname, lang, targetLang)
 
   const items: NavItem[] = [
     { key: 'home', label: 'Home', kind: 'route', href: `/${lang}` },
@@ -80,6 +87,7 @@ export function SiteNavigation({ lang, placement }: Props) {
     { key: 'blog', label: 'Blog', kind: 'route', href: `/${lang}/blog` },
     { key: 'uses', label: 'Uses', kind: 'placeholder', href: '#' },
     { key: 'contact', label: 'Contact', kind: 'placeholder', href: '#' },
+    { key: 'locale', label: targetLang.toUpperCase(), kind: 'route', href: localeHref },
   ]
 
   const updateIndicator = useEffectEvent((key: NavKey) => {
@@ -170,6 +178,7 @@ export function SiteNavigation({ lang, placement }: Props) {
               'site-nav-link',
               item.key === activeKey ? 'is-active' : '',
               item.kind === 'placeholder' ? 'is-placeholder' : '',
+              item.key === 'locale' ? 'is-locale' : '',
             ]
               .filter(Boolean)
               .join(' ')
