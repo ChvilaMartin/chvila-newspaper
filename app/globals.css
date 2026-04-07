@@ -15,7 +15,7 @@
   --surface-large-active: #dcc9cf;
   --surface-large-active-text: #56424a;
   --nav-border: rgba(39, 40, 34, 0.08);
-  --nav-active: rgba(231, 228, 225, 0.5);
+  --nav-active: rgba(39, 40, 34, 0.55);
   --nav-active-text: #2f2b28;
   --nav-text: #45403b;
   --accent-soft: rgba(225, 71, 117, 0.14);
@@ -146,17 +146,16 @@ section {
   flex-wrap: wrap;
   gap: 2px;
   padding: 2px;
-  border: 1px solid var(--nav-border);
-  border-radius: 999px;
+  border-top: 1px solid var(--nav-border);
+  border-bottom: 1px solid var(--nav-border);
   background: transparent;
 }
 
 .site-nav-indicator {
   position: absolute;
-  top: 2px;
-  bottom: 2px;
+  bottom: -1px;
   left: 0;
-  border-radius: 999px;
+  height: 2px;
   background: var(--nav-active);
   transition:
     transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
@@ -173,7 +172,6 @@ section {
   justify-content: center;
   min-height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
   color: var(--nav-text);
   font-size: 16px;
   font-weight: 700;
@@ -547,7 +545,6 @@ section {
     gap: 0;
     margin-top: 0;
     padding: 4px;
-    border-radius: 16px;
     overflow: hidden;
     opacity: 0;
     max-height: 0;
@@ -570,7 +567,6 @@ section {
     justify-content: flex-start;
     min-height: 42px;
     padding: 0 14px;
-    border-radius: 12px;
   }
 
   .site-nav-indicator {
