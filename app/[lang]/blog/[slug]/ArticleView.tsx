@@ -8,7 +8,10 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react'
-import { ArticleColumns } from './ArticleColumns'
+import {
+  ArticleColumns,
+  type ArticleColumnsHandle,
+} from './ArticleColumns'
 
 // Column icon (3 vertical bars)
 function ColumnsIcon() {
@@ -28,6 +31,22 @@ function StandardIcon() {
       <line x1="3" y1="4" x2="15" y2="4" />
       <line x1="3" y1="8" x2="15" y2="8" />
       <line x1="3" y1="12" x2="12" y2="12" />
+    </svg>
+  )
+}
+
+function ArrowLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M10.5 3.5 6 8l4.5 4.5" />
+    </svg>
+  )
+}
+
+function ArrowRightIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5.5 3.5 10 8l-4.5 4.5" />
     </svg>
   )
 }
@@ -78,9 +97,12 @@ function getAvailableViewportHeight(element: HTMLElement | null) {
 }
 
 export function ArticleView({ paragraphs }: Props) {
+  const columnsRef = useRef<ArticleColumnsHandle | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const [preferredMode, setPreferredMode] = useState<'columns' | 'standard'>(getStoredMode)
   const [columnViewportHeight, setColumnViewportHeight] = useState<number | null>(null)
+  const [canGoLeft, setCanGoLeft] = useState(false)
+  const [canGoRight, setCanGoRight] = useState(false)
   const isSmallScreen = useSyncExternalStore(subscribeToSmallScreen, getIsSmallScreen, () => false)
   const updateColumnViewportHeight = useEffectEvent(() => {
     setColumnViewportHeight(getAvailableViewportHeight(contentRef.current))
@@ -125,6 +147,8 @@ export function ArticleView({ paragraphs }: Props) {
     isSmallScreen || isHeightConstrained || columnViewportHeight === null
       ? 'standard'
       : preferredMode
+  const showTopControls =
+    !isSmallScreen && !isHeightConstrained && columnViewportHeight !== null
 
   function toggleMode() {
     const next = preferredMode === 'columns' ? 'standard' : 'columns'
@@ -134,8 +158,32 @@ export function ArticleView({ paragraphs }: Props) {
 
   return (
     <>
-      {!isSmallScreen && !isHeightConstrained && columnViewportHeight !== null ? (
+      {showTopControls ? (
         <div className="view-toggle">
+          {mode === 'columns' ? (
+            <div className="view-toggle-controls">
+              <button
+                type="button"
+                className="article-scroll-arrow"
+                onClick={() => columnsRef.current?.scrollByColumn(-1)}
+                aria-label="Previous column"
+                disabled={!canGoLeft}
+              >
+                <ArrowLeftIcon />
+              </button>
+
+              <button
+                type="button"
+                className="article-scroll-arrow"
+                onClick={() => columnsRef.current?.scrollByColumn(1)}
+                aria-label="Next column"
+                disabled={!canGoRight}
+              >
+                <ArrowRightIcon />
+              </button>
+            </div>
+          ) : null}
+
           <button
             onClick={toggleMode}
             className="view-toggle-btn"
@@ -160,8 +208,13 @@ export function ArticleView({ paragraphs }: Props) {
           </div>
         ) : (
           <ArticleColumns
+            ref={columnsRef}
             paragraphs={paragraphs}
             viewportHeight={columnViewportHeight!}
+            onNavigationStateChange={({ canGoLeft, canGoRight }) => {
+              setCanGoLeft(canGoLeft)
+              setCanGoRight(canGoRight)
+            }}
           />
         )}
       </div>

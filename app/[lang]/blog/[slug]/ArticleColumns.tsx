@@ -1,8 +1,10 @@
 'use client'
 
 import {
+  forwardRef,
   useEffect,
   useEffectEvent,
+  useImperativeHandle,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -14,6 +16,12 @@ import { prepare, layout } from '@chenglou/pretext'
 interface Props {
   paragraphs: string[]
   viewportHeight: number
+  onNavigationStateChange?: (state: NavigationState) => void
+}
+
+interface NavigationState {
+  canGoLeft: boolean
+  canGoRight: boolean
 }
 
 interface ViewportSnapshot {
@@ -25,8 +33,6 @@ interface LayoutState {
   colWidth: number
   gap: number
 }
-
-const COLUMN_CONTROLS_HEIGHT = 60
 
 let cachedViewportSnapshot: ViewportSnapshot | null = null
 
@@ -113,52 +119,22 @@ function createLayoutState(
   return { columns, colWidth, gap }
 }
 
-function ArrowLeftIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10.5 3.5 6 8l4.5 4.5" />
-    </svg>
-  )
+export interface ArticleColumnsHandle {
+  scrollByColumn: (direction: -1 | 1) => void
 }
 
-function ArrowRightIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5.5 3.5 10 8l-4.5 4.5" />
-    </svg>
-  )
-}
-
-export function ArticleColumns({ paragraphs, viewportHeight }: Props) {
+export const ArticleColumns = forwardRef<ArticleColumnsHandle, Props>(function ArticleColumns(
+  { paragraphs, viewportHeight, onNavigationStateChange }: Props,
+  ref,
+) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canGoLeft, setCanGoLeft] = useState(false)
   const [canGoRight, setCanGoRight] = useState(false)
-  const scrollViewportHeight = Math.max(0, viewportHeight - COLUMN_CONTROLS_HEIGHT)
   const viewport = useSyncExternalStore(subscribeToViewport, getViewportSnapshot, () => null)
   const state = useMemo(() => {
     if (!viewport) return null
-    return createLayoutState(paragraphs, viewport, scrollViewportHeight)
-  }, [paragraphs, scrollViewportHeight, viewport])
+    return createLayoutState(paragraphs, viewport, viewportHeight)
+  }, [paragraphs, viewport, viewportHeight])
   const updateScrollButtons = useEffectEvent(() => {
     const node = scrollRef.current
     if (!node) return
@@ -184,7 +160,7 @@ export function ArticleColumns({ paragraphs, viewportHeight }: Props) {
     }
 
     updateScrollButtons()
-  }, [scrollViewportHeight, state, totalWidth])
+  }, [state, totalWidth, viewportHeight])
 
   useEffect(() => {
     if (!state) return
@@ -216,6 +192,30 @@ export function ArticleColumns({ paragraphs, viewportHeight }: Props) {
     }
   }, [state, totalWidth])
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollByColumn(direction) {
+        const node = scrollRef.current
+        if (!node) return
+
+        const delta = direction * (colWidth + gap)
+        node.scrollTo({
+          left: node.scrollLeft + delta,
+          behavior: 'smooth',
+        })
+      },
+    }),
+    [colWidth, gap],
+  )
+
+  useEffect(() => {
+    onNavigationStateChange?.({
+      canGoLeft: state ? canGoLeft : false,
+      canGoRight: state ? canGoRight : false,
+    })
+  }, [canGoLeft, canGoRight, onNavigationStateChange, state])
+
   // SSR / pre-hydration fallback
   if (!state) {
     return (
@@ -227,45 +227,12 @@ export function ArticleColumns({ paragraphs, viewportHeight }: Props) {
     )
   }
 
-  function scrollByColumn(direction: -1 | 1) {
-    const node = scrollRef.current
-    if (!node) return
-
-    const delta = direction * (colWidth + gap)
-    node.scrollTo({
-      left: node.scrollLeft + delta,
-      behavior: 'smooth',
-    })
-  }
-
   return (
     <div className="article-columns-shell">
-      <div className="article-scroll-controls">
-        <button
-          type="button"
-          className="article-scroll-arrow"
-          onClick={() => scrollByColumn(-1)}
-          aria-label="Previous column"
-          disabled={!canGoLeft}
-        >
-          <ArrowLeftIcon />
-        </button>
-
-        <button
-          type="button"
-          className="article-scroll-arrow"
-          onClick={() => scrollByColumn(1)}
-          aria-label="Next column"
-          disabled={!canGoRight}
-        >
-          <ArrowRightIcon />
-        </button>
-      </div>
-
       <div
         ref={scrollRef}
         className="article-scroll"
-        style={{ height: scrollViewportHeight }}
+        style={{ height: viewportHeight }}
       >
         <div className="article-columns" style={{ width: totalWidth }}>
           {columns.map((colIndices, ci) => (
@@ -285,4 +252,4 @@ export function ArticleColumns({ paragraphs, viewportHeight }: Props) {
       </div>
     </div>
   )
-}
+})
