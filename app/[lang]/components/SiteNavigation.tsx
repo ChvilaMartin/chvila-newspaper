@@ -2,7 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ViewTransition, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
+import {
+  ViewTransition,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
 import type { Locale } from '../dictionaries'
 
 type Placement = 'home' | 'top'
@@ -24,17 +32,44 @@ type NavItem =
   | { key: NavKey; label: string; kind: 'placeholder'; href: '#' }
 
 const NAV_TRANSITION_TYPES = ['site-nav']
+const MOBILE_MEDIA_QUERY = '(max-width: 720px)'
+
+function subscribeToMobileNavigation(callback: () => void) {
+  if (typeof window === 'undefined') return () => {}
+
+  const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY)
+  const handleChange = () => callback()
+
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }
+
+  mediaQuery.addListener(handleChange)
+  return () => mediaQuery.removeListener(handleChange)
+}
+
+function getIsMobileNavigation() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
+}
 
 export function SiteNavigation({ lang, placement }: Props) {
   const pathname = usePathname()
   const navRef = useRef<HTMLElement | null>(null)
   const itemRefs = useRef<Partial<Record<NavKey, HTMLAnchorElement | null>>>({})
   const [hoveredKey, setHoveredKey] = useState<NavKey | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [indicator, setIndicator] = useState<IndicatorState>({
     left: 0,
     width: 0,
     opacity: 0,
   })
+  const isMobileNavigation = useSyncExternalStore(
+    subscribeToMobileNavigation,
+    getIsMobileNavigation,
+    () => false,
+  )
 
   const activeKey: NavKey = pathname?.includes('/blog') ? 'blog' : 'home'
   const indicatorKey = hoveredKey ?? activeKey
@@ -67,10 +102,13 @@ export function SiteNavigation({ lang, placement }: Props) {
   })
 
   useLayoutEffect(() => {
+    if (isMobileNavigation) return
     updateIndicator(indicatorKey)
-  }, [indicatorKey])
+  }, [indicatorKey, isMobileNavigation])
 
   useEffect(() => {
+    if (isMobileNavigation) return
+
     const nav = navRef.current
     if (!nav || typeof ResizeObserver === 'undefined') return
 
@@ -80,16 +118,42 @@ export function SiteNavigation({ lang, placement }: Props) {
 
     observer.observe(nav)
     return () => observer.disconnect()
-  }, [indicatorKey])
+  }, [indicatorKey, isMobileNavigation])
+
+  function handleNavItemClick() {
+    if (isMobileNavigation) {
+      setIsMobileMenuOpen(false)
+    }
+  }
 
   return (
-    <div className={`site-nav-shell site-nav-shell--${placement}`}>
+    <div
+      className={[
+        'site-nav-shell',
+        `site-nav-shell--${placement}`,
+        isMobileMenuOpen ? 'is-mobile-open' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
+      <button
+        type="button"
+        className="site-nav-mobile-toggle"
+        aria-expanded={isMobileMenuOpen}
+        aria-controls={`site-nav-${placement}`}
+        onClick={() => setIsMobileMenuOpen((open) => !open)}
+      >
+        Menu
+      </button>
+
       <ViewTransition name="site-navigation" default="none" share="nav-share">
         <nav
+          id={`site-nav-${placement}`}
           ref={navRef}
           className="site-nav"
           aria-label="Primary"
           onPointerLeave={() => setHoveredKey(null)}
+          data-mobile-open={isMobileMenuOpen ? 'true' : 'false'}
         >
           <span
             aria-hidden="true"
@@ -119,7 +183,10 @@ export function SiteNavigation({ lang, placement }: Props) {
                   }}
                   href={item.href}
                   className={className}
-                  onClick={(event) => event.preventDefault()}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    handleNavItemClick()
+                  }}
                   onPointerEnter={() => setHoveredKey(item.key)}
                   onFocus={() => setHoveredKey(item.key)}
                   onBlur={() => setHoveredKey(null)}
@@ -139,6 +206,7 @@ export function SiteNavigation({ lang, placement }: Props) {
                 className={className}
                 aria-current={item.key === activeKey ? 'page' : undefined}
                 transitionTypes={NAV_TRANSITION_TYPES}
+                onClick={handleNavItemClick}
                 onPointerEnter={() => setHoveredKey(item.key)}
                 onFocus={() => setHoveredKey(item.key)}
                 onBlur={() => setHoveredKey(null)}

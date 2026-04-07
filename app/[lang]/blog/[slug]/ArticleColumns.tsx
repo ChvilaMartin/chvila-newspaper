@@ -18,6 +18,8 @@ interface LayoutState {
   gap: number
 }
 
+let cachedViewportSnapshot: ViewportSnapshot | null = null
+
 function subscribeToViewport(callback: () => void) {
   if (typeof window === 'undefined') return () => {}
 
@@ -28,10 +30,23 @@ function subscribeToViewport(callback: () => void) {
 function getViewportSnapshot(): ViewportSnapshot | null {
   if (typeof window === 'undefined') return null
 
-  return {
-    width: window.innerWidth,
-    height: window.innerHeight,
+  const nextWidth = window.innerWidth
+  const nextHeight = window.innerHeight
+
+  if (
+    cachedViewportSnapshot &&
+    cachedViewportSnapshot.width === nextWidth &&
+    cachedViewportSnapshot.height === nextHeight
+  ) {
+    return cachedViewportSnapshot
   }
+
+  cachedViewportSnapshot = {
+    width: nextWidth,
+    height: nextHeight,
+  }
+
+  return cachedViewportSnapshot
 }
 
 function createLayoutState(paragraphs: string[], viewport: ViewportSnapshot): LayoutState {
