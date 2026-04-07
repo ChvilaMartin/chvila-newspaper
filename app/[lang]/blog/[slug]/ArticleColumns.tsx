@@ -1,49 +1,70 @@
 'use client'
 
-import { useRef, useState, useEffect, useCallback } from 'react'
+import { useMemo, useRef, useSyncExternalStore } from 'react'
 import { prepare, layout } from '@chenglou/pretext'
 
 interface Props {
   paragraphs: string[]
 }
 
-export function ArticleColumns({ paragraphs }: Props) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [state, setState] = useState<{
-    columns: number[][]
-    colWidth: number
-    gap: number
-  } | null>(null)
+interface ViewportSnapshot {
+  width: number
+  height: number
+}
 
-  const reflow = useCallback(() => {
-    const vw = window.innerWidth
-    const padding = 40
+interface LayoutState {
+  columns: number[][]
+  colWidth: number
+  gap: number
+}
 
-    let containerWidth: number
-    let colsVisible: number
+function subscribeToViewport(callback: () => void) {
+  if (typeof window === 'undefined') return () => {}
 
-    if (vw < 640) {
-      containerWidth = vw - padding
-      colsVisible = 1
-    } else if (vw < 1024) {
-      containerWidth = Math.min(720 - padding, vw - padding)
-      colsVisible = 2
-    } else {
-      containerWidth = Math.min(1080 - padding, vw - padding)
-      colsVisible = 3
-    }
+  window.addEventListener('resize', callback)
+  return () => window.removeEventListener('resize', callback)
+}
 
-    const gap = 32
-    const colWidth = (containerWidth - (colsVisible - 1) * gap) / colsVisible
-    const colHeight = window.innerHeight - 280
+function getViewportSnapshot(): ViewportSnapshot | null {
+  if (typeof window === 'undefined') return null
 
-    const font = '18px Georgia'
-    const lineHeight = 26
-    const paraSpacing = 14
+  return {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+}
 
-    const columns: number[][] = [[]]
-    let currentH = 0
+function createLayoutState(paragraphs: string[], viewport: ViewportSnapshot): LayoutState {
+  const vw = viewport.width
+  const vh = viewport.height
+  const padding = 40
 
+  let containerWidth: number
+  let colsVisible: number
+
+  if (vw < 640) {
+    containerWidth = vw - padding
+    colsVisible = 1
+  } else if (vw < 1024) {
+    containerWidth = Math.min(720 - padding, vw - padding)
+    colsVisible = 2
+  } else {
+    containerWidth = Math.min(1080 - padding, vw - padding)
+    colsVisible = 3
+  }
+
+  const gap = 32
+  const colWidth = (containerWidth - (colsVisible - 1) * gap) / colsVisible
+  const colHeight = vh - 280
+
+  const font = '18px Georgia'
+  const lineHeight = 26
+  const paraSpacing = 14
+
+  const columns: number[][] = [[]]
+  let currentH = 0
+
+  try {
     for (let i = 0; i < paragraphs.length; i++) {
       const prepared = prepare(paragraphs[i], font)
       // Small width reduction to buffer for text-indent and justify variance
@@ -60,15 +81,27 @@ export function ArticleColumns({ paragraphs }: Props) {
       columns[columns.length - 1].push(i)
       currentH += pH
     }
+  } catch {
+    // OffscreenCanvas 2D context may be unavailable on some mobile browsers,
+    // causing prepare()/layout() to throw. Fall back to one paragraph per
+    // visible column slot, cycling through the available columns evenly.
+    columns.length = 0
+    for (let c = 0; c < colsVisible; c++) columns.push([])
+    for (let i = 0; i < paragraphs.length; i++) {
+      columns[i % colsVisible].push(i)
+    }
+  }
 
-    setState({ columns, colWidth, gap })
-  }, [paragraphs])
+  return { columns, colWidth, gap }
+}
 
-  useEffect(() => {
-    reflow()
-    window.addEventListener('resize', reflow)
-    return () => window.removeEventListener('resize', reflow)
-  }, [reflow])
+export function ArticleColumns({ paragraphs }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const viewport = useSyncExternalStore(subscribeToViewport, getViewportSnapshot, () => null)
+  const state = useMemo(() => {
+    if (!viewport) return null
+    return createLayoutState(paragraphs, viewport)
+  }, [paragraphs, viewport])
 
   // SSR / pre-hydration fallback
   if (!state) {

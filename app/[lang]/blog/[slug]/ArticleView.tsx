@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { ArticleColumns } from './ArticleColumns'
 
 // Column icon (3 vertical bars)
@@ -30,6 +30,7 @@ interface Props {
 }
 
 const STORAGE_KEY = 'article-view-mode'
+const MOBILE_MEDIA_QUERY = '(max-width: 639px)'
 
 function getStoredMode(): 'columns' | 'standard' {
   if (typeof window === 'undefined') return 'columns'
@@ -37,27 +38,51 @@ function getStoredMode(): 'columns' | 'standard' {
   return stored === 'standard' ? 'standard' : 'columns'
 }
 
+function subscribeToSmallScreen(callback: () => void) {
+  if (typeof window === 'undefined') return () => {}
+
+  const mediaQuery = window.matchMedia(MOBILE_MEDIA_QUERY)
+  const handleChange = () => callback()
+
+  if (typeof mediaQuery.addEventListener === 'function') {
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }
+
+  mediaQuery.addListener(handleChange)
+  return () => mediaQuery.removeListener(handleChange)
+}
+
+function getIsSmallScreen() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
+}
+
 export function ArticleView({ paragraphs }: Props) {
-  const [mode, setMode] = useState<'columns' | 'standard'>(getStoredMode)
+  const [preferredMode, setPreferredMode] = useState<'columns' | 'standard'>(getStoredMode)
+  const isSmallScreen = useSyncExternalStore(subscribeToSmallScreen, getIsSmallScreen, () => false)
+  const mode = isSmallScreen ? 'standard' : preferredMode
 
   function toggleMode() {
-    const next = mode === 'columns' ? 'standard' : 'columns'
-    setMode(next)
+    const next = preferredMode === 'columns' ? 'standard' : 'columns'
+    setPreferredMode(next)
     localStorage.setItem(STORAGE_KEY, next)
   }
 
   return (
     <>
-      <div className="view-toggle">
-        <button
-          onClick={toggleMode}
-          className="view-toggle-btn"
-          title={mode === 'columns' ? 'Standard view' : 'Column view'}
-          aria-label={mode === 'columns' ? 'Switch to standard view' : 'Switch to column view'}
-        >
-          {mode === 'columns' ? <StandardIcon /> : <ColumnsIcon />}
-        </button>
-      </div>
+      {!isSmallScreen ? (
+        <div className="view-toggle">
+          <button
+            onClick={toggleMode}
+            className="view-toggle-btn"
+            title={mode === 'columns' ? 'Standard view' : 'Column view'}
+            aria-label={mode === 'columns' ? 'Switch to standard view' : 'Switch to column view'}
+          >
+            {mode === 'columns' ? <StandardIcon /> : <ColumnsIcon />}
+          </button>
+        </div>
+      ) : null}
 
       <hr className="article-rule" />
 

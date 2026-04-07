@@ -277,7 +277,7 @@ section {
   background: none;
   border: none;
   color: #999;
-  padding: 4px;
+  padding: 12px;
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -285,7 +285,12 @@ section {
   justify-content: center;
 }
 
-.view-toggle-btn:hover {
+.view-toggle-btn svg {
+  pointer-events: none;
+}
+
+.view-toggle-btn:hover,
+.view-toggle-btn:active {
   color: var(--link);
 }
 
